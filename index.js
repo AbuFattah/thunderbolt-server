@@ -26,15 +26,21 @@ const client = new MongoClient(uri, {
     await client.connect();
     console.log(process.env.DB_USER);
     const productCollection = client.db("thunderbolt").collection("products");
+    const reviewCollection = client.db("thunderbolt").collection("reviews");
 
     // APIS
     app.get("/featuredProducts", async (req, res) => {
       const query = {};
-      const cursor = productCollection.find(query).limit(4);
+      const cursor = productCollection.find(query).limit(3);
       const products = await cursor.toArray();
       res.send(products);
     });
-    // replace console.dir with your callback to access individual elements
+
+    app.get("/reviews", async (req, res) => {
+      const query = {};
+      const reviews = await reviewCollection.find(query).toArray();
+      res.send(reviews);
+    });
   } finally {
   }
 })().catch(console.dir);
