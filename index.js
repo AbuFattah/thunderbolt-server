@@ -46,16 +46,24 @@ const client = new MongoClient(uri, {
     });
     // place order
     app.post("/orders/:productId", async (req, res) => {
-      const id = req.params.productId;
-      const { email } = req.body;
+      const productId = req.params.productId;
+      const { email, orderQuantity } = req.body;
+
       const existingOrder = await orderCollection.findOne({
-        productId: id,
-        email: email,
+        productId,
+        email,
       });
       if (existingOrder) {
         return res.send({ message: "Order already placed", success: false });
       }
-      const doc = { ...req.body, productId: id, paid: false };
+      const updateProducts = {
+        $inc: { quantity: -orderQuantity },
+      };
+      await productCollection.updateOne(
+        { _id: ObjectId(productId) },
+        updateProducts
+      );
+      const doc = { ...req.body, productId, paid: false };
 
       const result = await orderCollection.insertOne(doc);
       res.send({ success: true, ...result });
