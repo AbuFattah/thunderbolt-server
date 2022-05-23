@@ -27,6 +27,7 @@ const client = new MongoClient(uri, {
     console.log(process.env.DB_USER);
     const productCollection = client.db("thunderbolt").collection("products");
     const reviewCollection = client.db("thunderbolt").collection("reviews");
+    const orderCollection = client.db("thunderbolt").collection("orders");
 
     // APIS
     app.get("/featuredProducts", async (req, res) => {
@@ -36,6 +37,36 @@ const client = new MongoClient(uri, {
       res.send(products);
     });
 
+    // Find products by id
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productCollection.findOne(query);
+      res.send(result);
+    });
+    // place order
+    app.post("/orders/:productId", async (req, res) => {
+      const id = req.params.productId;
+      const { email } = req.body;
+      const existingOrder = await orderCollection.findOne({
+        productId: id,
+        email: email,
+      });
+      if (existingOrder) {
+        return res.send({ message: "Order already placed", success: false });
+      }
+      const doc = { ...req.body, productId: id, paid: false };
+
+      const result = await orderCollection.insertOne(doc);
+      res.send({ success: true, ...result });
+    });
+    // Get my orders
+    app.get("/orders", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const myOrders = await orderCollection.find(query).toArray();
+      res.send(myOrders);
+    });
     app.get("/reviews", async (req, res) => {
       const query = {};
       const reviews = await reviewCollection.find(query).toArray();
