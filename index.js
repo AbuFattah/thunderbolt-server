@@ -115,6 +115,23 @@ const client = new MongoClient(uri, {
     // add user and create access token
     app.put("/users", async (req, res) => {
       const payload = req.body;
+      const { email } = payload;
+      const filter = { email: email };
+      const updatedDoc = {
+        $set: {
+          ...payload,
+        },
+      };
+      const options = { upsert: true };
+      const result = await userCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      const token = jwt.sign(payload, process.env.ACCESS_SIGNATURE, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
     });
   } finally {
   }
