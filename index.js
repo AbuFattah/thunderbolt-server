@@ -1,4 +1,5 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -111,7 +112,10 @@ const client = new MongoClient(uri, {
       }
       res.send({ ...result, success: true });
     });
-    // create access token
+    // add user and create access token
+    app.put("/users", async (req, res) => {
+      const payload = req.body;
+    });
   } finally {
   }
 })().catch(console.dir);
