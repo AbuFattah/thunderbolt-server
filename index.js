@@ -28,6 +28,7 @@ const client = new MongoClient(uri, {
     const productCollection = client.db("thunderbolt").collection("products");
     const reviewCollection = client.db("thunderbolt").collection("reviews");
     const orderCollection = client.db("thunderbolt").collection("orders");
+    const userCollection = client.db("thunderbolt").collection("users");
 
     // APIS
     app.get("/featuredProducts", async (req, res) => {
@@ -80,6 +81,37 @@ const client = new MongoClient(uri, {
       const reviews = await reviewCollection.find(query).toArray();
       res.send(reviews);
     });
+    // Get User Profile
+    app.get("/userProfile/:email", async (req, res) => {
+      const filter = { email: req.params.email };
+      const profile = await userCollection.findOne(filter);
+      if (!profile) {
+        return res.send({ message: "failed to fetch", success: false });
+      }
+      res.send(profile);
+    });
+    // Update Profile
+    app.put("/updateProfile/:email", async (req, res) => {
+      const email = req.params.email;
+      const data = req.body;
+      const updatedDoc = {
+        $set: {
+          ...data,
+        },
+      };
+      const filter = { email: email };
+      const options = { upsert: true };
+      const result = await userCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      if (!result.acknowledged) {
+        return res.send({ success: false });
+      }
+      res.send({ ...result, success: true });
+    });
+    // create access token
   } finally {
   }
 })().catch(console.dir);
