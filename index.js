@@ -133,6 +133,17 @@ const client = new MongoClient(uri, {
       });
       res.send({ token });
     });
+    // DELETE ORDER
+    app.delete("/orders/:orderId", async (req, res) => {
+      const id = req.params.orderId;
+      const query = { _id: ObjectId(id) };
+      const result = await orderCollection.deleteOne(query);
+      if (result.deletedCount !== 1) {
+        return res.send({ success: false });
+      }
+
+      res.send({ success: true });
+    });
   } finally {
   }
 })().catch(console.dir);
