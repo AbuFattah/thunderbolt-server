@@ -71,16 +71,23 @@ const client = new MongoClient(uri, {
       res.send({ success: true, ...result });
     });
     // Get my orders
-    app.get("/orders", async (req, res) => {
-      const email = req.query.email;
+    app.get("/orders/:email", async (req, res) => {
+      const email = req.params.email;
       const query = { email: email };
       const myOrders = await orderCollection.find(query).toArray();
       res.send(myOrders);
     });
+    // get reviews
     app.get("/reviews", async (req, res) => {
       const query = {};
       const reviews = await reviewCollection.find(query).toArray();
       res.send(reviews);
+    });
+    // POST REVIEWS
+    app.post("/reviews", async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      res.send(result);
     });
     // Get User Profile
     app.get("/userProfile/:email", async (req, res) => {
@@ -150,6 +157,29 @@ const client = new MongoClient(uri, {
       }
 
       res.send({ success: true });
+    });
+    // IS ADMIN
+    app.get("/isAdmin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email, role: "admin" };
+      console.log({ query });
+      const result = await userCollection.findOne(query);
+      if (!result) {
+        return res.send({ isAdmin: false });
+      }
+      console.log(result);
+      res.send({ isAdmin: true });
+    });
+    // ADD A Product
+    app.post("/products", async (req, res) => {
+      const product = req.body;
+      const result = await productCollection.insertOne(product);
+      res.send(result);
+    });
+    // Get orders
+    app.get("/orders", async (req, res) => {
+      const result = await orderCollection.find({}).toArray();
+      res.send(result);
     });
   } finally {
   }
