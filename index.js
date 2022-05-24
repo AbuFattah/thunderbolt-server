@@ -137,6 +137,13 @@ const client = new MongoClient(uri, {
     app.delete("/orders/:orderId", async (req, res) => {
       const id = req.params.orderId;
       const query = { _id: ObjectId(id) };
+      const order = await orderCollection.findOne(query);
+      if (order.paid) {
+        return res.send({
+          message: "Payment is already completed",
+          success: false,
+        });
+      }
       const result = await orderCollection.deleteOne(query);
       if (result.deletedCount !== 1) {
         return res.send({ success: false });
