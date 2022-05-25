@@ -199,10 +199,28 @@ const client = new MongoClient(uri, {
       const products = await productCollection.find({}).toArray();
       res.send(products);
     });
+    // delete a product
     app.delete("/products/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await productCollection.deleteOne(filter);
+      res.send(result);
+    });
+    // Make ADMIN
+    app.patch("/makeAdmin/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updatedDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find({}).toArray();
       res.send(result);
     });
   } finally {
