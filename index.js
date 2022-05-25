@@ -11,6 +11,34 @@ const { application } = require("express");
 app.use(cors());
 app.use(express.json());
 
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_SIGNATURE, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden Access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
+const verifyAdmin = async (req, res, next) => {
+  if (!req.decoded) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+
+  const { email } = req.decoded;
+  const user = await userCollection.findOne(email);
+  if (user.role !== "admin") {
+    return res.status(403).send({ message: "Forbidden Access" });
+  }
+  next();
+};
+
 app.get("/", (req, res) => {
   res.send("hellow world!");
 });
@@ -47,7 +75,7 @@ const client = new MongoClient(uri, {
       res.send(result);
     });
     // place order
-    app.post("/orders/:productId", async (req, res) => {
+    app.post("/orders/:productId", verifyJWT, async (req, res) => {
       const productId = req.params.productId;
       const { email, orderQuantity } = req.body;
 
@@ -71,7 +99,7 @@ const client = new MongoClient(uri, {
       res.send({ success: true, ...result });
     });
     // Get my orders
-    app.get("/orders/:email", async (req, res) => {
+    app.get("/orders/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const myOrders = await orderCollection.find(query).toArray();
@@ -84,13 +112,13 @@ const client = new MongoClient(uri, {
       res.send(reviews);
     });
     // POST REVIEWS
-    app.post("/reviews", async (req, res) => {
+    app.post("/reviews", verifyJWT, async (req, res) => {
       const review = req.body;
       const result = await reviewCollection.insertOne(review);
       res.send(result);
     });
     // Get User Profile
-    app.get("/userProfile/:email", async (req, res) => {
+    app.get("/userProfile/:email", verifyJWT, async (req, res) => {
       const filter = { email: req.params.email };
       const profile = await userCollection.findOne(filter);
       if (!profile) {
@@ -99,7 +127,7 @@ const client = new MongoClient(uri, {
       res.send(profile);
     });
     // Update Profile
-    app.put("/updateProfile/:email", async (req, res) => {
+    app.put("/updateProfile/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const data = req.body;
       const updatedDoc = {
@@ -141,7 +169,7 @@ const client = new MongoClient(uri, {
       res.send({ token });
     });
     // DELETE ORDER
-    app.delete("/orders/:orderId", async (req, res) => {
+    app.delete("/orders/:orderId", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.orderId;
       const query = { _id: ObjectId(id) };
       const order = await orderCollection.findOne(query);
@@ -171,7 +199,7 @@ const client = new MongoClient(uri, {
       res.send({ isAdmin: true });
     });
     // ADD A Product
-    app.post("/products", async (req, res) => {
+    app.post("/products", verifyJWT, verifyAdmin, async (req, res) => {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
@@ -182,7 +210,7 @@ const client = new MongoClient(uri, {
       res.send(result);
     });
     // UPDATING STATUS TO SHIPPED
-    app.patch("/orders/:id", async (req, res) => {
+    app.patch("/orders/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
@@ -200,14 +228,14 @@ const client = new MongoClient(uri, {
       res.send(products);
     });
     // delete a product
-    app.delete("/products/:id", async (req, res) => {
+    app.delete("/products/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const result = await productCollection.deleteOne(filter);
       res.send(result);
     });
     // Make ADMIN
-    app.patch("/makeAdmin/:email", async (req, res) => {
+    app.patch("/makeAdmin/:email", verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.params.email;
       const filter = { email: email };
       const updatedDoc = {
