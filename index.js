@@ -22,21 +22,9 @@ const verifyJWT = (req, res, next) => {
       return res.status(403).send({ message: "Forbidden Access" });
     }
     req.decoded = decoded;
+    console.log("inside VerfiyJWT", authorization);
     next();
   });
-};
-
-const verifyAdmin = async (req, res, next) => {
-  if (!req.decoded) {
-    return res.status(401).send({ message: "Unauthorized Access" });
-  }
-
-  const { email } = req.decoded;
-  const user = await userCollection.findOne(email);
-  if (user.role !== "admin") {
-    return res.status(403).send({ message: "Forbidden Access" });
-  }
-  next();
 };
 
 app.get("/", (req, res) => {
@@ -59,6 +47,20 @@ const client = new MongoClient(uri, {
     const orderCollection = client.db("thunderbolt").collection("orders");
     const userCollection = client.db("thunderbolt").collection("users");
 
+    // MIDDLEWARES
+    const verifyAdmin = async (req, res, next) => {
+      console.log("inside verifyAdmin");
+      if (!req.decoded) {
+        return res.status(401).send({ message: "Unauthorized Access" });
+      }
+
+      const { email } = req.decoded;
+      const user = await userCollection.findOne({ email: email });
+      if (user.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+      next();
+    };
     // APIS
     app.get("/featuredProducts", async (req, res) => {
       const query = {};
@@ -118,7 +120,7 @@ const client = new MongoClient(uri, {
       res.send(result);
     });
     // Get User Profile
-    app.get("/userProfile/:email", verifyJWT, async (req, res) => {
+    app.get("/userProfile/:email", async (req, res) => {
       const filter = { email: req.params.email };
       const profile = await userCollection.findOne(filter);
       if (!profile) {
@@ -169,7 +171,8 @@ const client = new MongoClient(uri, {
       res.send({ token });
     });
     // DELETE ORDER
-    app.delete("/orders/:orderId", verifyJWT, verifyAdmin, async (req, res) => {
+    app.delete("/orders/:orderId", verifyJWT, async (req, res) => {
+      console.log("inside delete");
       const id = req.params.orderId;
       const query = { _id: ObjectId(id) };
       const order = await orderCollection.findOne(query);
