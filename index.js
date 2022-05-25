@@ -181,6 +181,30 @@ const client = new MongoClient(uri, {
       const result = await orderCollection.find({}).toArray();
       res.send(result);
     });
+    // UPDATING STATUS TO SHIPPED
+    app.patch("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: "shipped",
+        },
+      };
+      const result = await orderCollection.updateOne(filter, updatedDoc);
+      console.log(result);
+      res.send(result);
+    });
+    // Get all products
+    app.get("/products", async (req, res) => {
+      const products = await productCollection.find({}).toArray();
+      res.send(products);
+    });
+    app.delete("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await productCollection.deleteOne(filter);
+      res.send(result);
+    });
   } finally {
   }
 })().catch(console.dir);
