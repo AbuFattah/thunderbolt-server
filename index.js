@@ -79,15 +79,15 @@ const client = new MongoClient(uri, {
     // place order
     app.post("/orders/:productId", verifyJWT, async (req, res) => {
       const productId = req.params.productId;
-      const { email, orderQuantity } = req.body;
-
-      const existingOrder = await orderCollection.findOne({
-        productId,
-        email,
-      });
-      if (existingOrder) {
-        return res.send({ message: "Order already placed", success: false });
-      }
+      let { email, orderQuantity } = req.body;
+      orderQuantity = parseInt(orderQuantity);
+      // const existingOrder = await orderCollection.findOne({
+      //   productId,
+      //   email,
+      // });
+      // if (existingOrder) {
+      //   return res.send({ message: "Order already placed", success: false });
+      // }
       const updateProducts = {
         $inc: { quantity: -orderQuantity },
       };
