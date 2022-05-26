@@ -56,7 +56,9 @@ const client = new MongoClient(uri, {
       }
 
       const { email } = req.decoded;
+      console.log(email);
       const user = await userCollection.findOne({ email: email });
+      console.log(user);
       if (user.role !== "admin") {
         return res.status(403).send({ message: "Forbidden Access" });
       }
@@ -221,11 +223,28 @@ const client = new MongoClient(uri, {
     });
     // UPDATING STATUS TO SHIPPED
     app.patch("/orders/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      console.log("lkfjdlkjalkjflsakfjlkasf");
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
         $set: {
           status: "shipped",
+        },
+      };
+      const result = await orderCollection.updateOne(filter, updatedDoc);
+      console.log(result);
+      res.send(result);
+    });
+    // UPDATE PAYMENT STATUS FOR ORDER
+    app.patch("/orders/payment/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const { transactionId } = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          status: "pending",
+          transactionId: transactionId,
         },
       };
       const result = await orderCollection.updateOne(filter, updatedDoc);
@@ -262,7 +281,7 @@ const client = new MongoClient(uri, {
       res.send(result);
     });
     // STRIPE PAYMENT
-    app.post("/create-payment-intent", async (req, res) => {
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
       let { price } = req.body;
       if (!price || isNaN(price)) {
         return res.status(404).send({ message: "invalid request body" });
