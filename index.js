@@ -67,7 +67,7 @@ const client = new MongoClient(uri, {
     // APIS
     app.get("/featuredProducts", async (req, res) => {
       const query = {};
-      const cursor = productCollection.find(query).limit(3);
+      const cursor = productCollection.find(query).limit(6);
       const products = await cursor.toArray();
       res.send(products);
     });
