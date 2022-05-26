@@ -6,6 +6,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const { application } = require("express");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // middlewares
 app.use(cors());
@@ -212,6 +213,12 @@ const client = new MongoClient(uri, {
       const result = await orderCollection.find({}).toArray();
       res.send(result);
     });
+    // Get single order
+    app.get("/singleOrder/:id", async (req, res) => {
+      const id = req.params.id;
+      const order = await orderCollection.findOne({ _id: ObjectId(id) });
+      res.send(order);
+    });
     // UPDATING STATUS TO SHIPPED
     app.patch("/orders/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
@@ -253,6 +260,22 @@ const client = new MongoClient(uri, {
     app.get("/users", async (req, res) => {
       const result = await userCollection.find({}).toArray();
       res.send(result);
+    });
+    // STRIPE PAYMENT
+    app.post("/create-payment-intent", async (req, res) => {
+      let { price } = req.body;
+      if (!price || isNaN(price)) {
+        return res.status(404).send({ message: "invalid request body" });
+      }
+      amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     });
   } finally {
   }
