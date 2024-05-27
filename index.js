@@ -1,29 +1,35 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
-const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const port = process.env.PORT || 8080;
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const { application } = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
+const ACCESS_SIGNATURE = process.env.ACCESS_SIGNATURE;
 // middlewares
 app.use(cors());
 app.use(express.json());
 
 const verifyJWT = (req, res, next) => {
+  //console.log("inside verify jwt");
+  //console.log(req.headers);
   const authorization = req.headers.authorization;
   if (!authorization) {
     return res.status(401).send({ message: "Unauthorized Access" });
   }
+  //console.log(authorization);
   const token = authorization.split(" ")[1];
-  jwt.verify(token, process.env.ACCESS_SIGNATURE, function (err, decoded) {
+  //console.log(token);
+  jwt.verify(token, ACCESS_SIGNATURE, function (err, decoded) {
     if (err) {
-      return res.status(403).send({ message: "Forbidden Access" });
+      //console.log(err);
+      return res.status(403).send({ message: "Forbidden Accesssss" });
     }
     req.decoded = decoded;
-    console.log("inside VerfiyJWT", authorization);
+    ////console.log("inside VerfiyJWT", authorization);
     next();
   });
 };
@@ -42,7 +48,7 @@ const client = new MongoClient(uri, {
 (async function run() {
   try {
     await client.connect();
-    console.log(process.env.DB_USER);
+    ////console.log(process.env.DB_USER);
     const productCollection = client.db("thunderbolt").collection("products");
     const reviewCollection = client.db("thunderbolt").collection("reviews");
     const orderCollection = client.db("thunderbolt").collection("orders");
@@ -50,24 +56,24 @@ const client = new MongoClient(uri, {
 
     // MIDDLEWARES
     const verifyAdmin = async (req, res, next) => {
-      console.log("inside verifyAdmin");
+      //console.log("inside verifyAdmin");
       if (!req.decoded) {
         return res.status(401).send({ message: "Unauthorized Access" });
       }
 
       const { email } = req.decoded;
-      console.log(email);
+      ////console.log(email);
       const user = await userCollection.findOne({ email: email });
-      console.log(user);
+
       if (user.role !== "admin") {
-        return res.status(403).send({ message: "Forbidden Access" });
+        return res.status(403).send({ message: "Forbidden Acce" });
       }
       next();
     };
     // APIS
     app.get("/featuredProducts", async (req, res) => {
       const query = {};
-      const cursor = productCollection.find(query).limit(6);
+      const cursor = productCollection.find(query);
       const products = await cursor.toArray();
       res.send(products);
     });
@@ -154,6 +160,7 @@ const client = new MongoClient(uri, {
     });
     // add user and create access token
     app.put("/users", async (req, res) => {
+      //console.log("inside sign in");
       const payload = req.body;
       const { email } = payload;
       const filter = { email: email };
@@ -168,14 +175,14 @@ const client = new MongoClient(uri, {
         updatedDoc,
         options
       );
-      const token = jwt.sign(payload, process.env.ACCESS_SIGNATURE, {
-        expiresIn: "1h",
+      const token = jwt.sign(payload, ACCESS_SIGNATURE, {
+        expiresIn: "30d",
       });
       res.send({ token });
     });
     // DELETE ORDER
     app.delete("/orders/:orderId", verifyJWT, async (req, res) => {
-      console.log("inside delete");
+      ////console.log("inside delete");
       const id = req.params.orderId;
       const query = { _id: ObjectId(id) };
       const order = await orderCollection.findOne(query);
@@ -196,12 +203,12 @@ const client = new MongoClient(uri, {
     app.get("/isAdmin/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email, role: "admin" };
-      console.log({ query });
+      ////console.log({ query });
       const result = await userCollection.findOne(query);
       if (!result) {
         return res.send({ isAdmin: false });
       }
-      console.log(result);
+      ////console.log(result);
       res.send({ isAdmin: true });
     });
     // ADD A Product
@@ -221,9 +228,16 @@ const client = new MongoClient(uri, {
       const order = await orderCollection.findOne({ _id: ObjectId(id) });
       res.send(order);
     });
+    // GET AVATAR LINK
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
+      res.send(result.avatarLink);
+    });
     // UPDATING STATUS TO SHIPPED
     app.patch("/orders/:id", verifyJWT, verifyAdmin, async (req, res) => {
-      console.log("lkfjdlkjalkjflsakfjlkasf");
+      //console.log("lkfjdlkjalkjflsakfjlkasf");
       const id = req.params.id;
       const filter = { _id: ObjectId(id) };
       const updatedDoc = {
@@ -232,7 +246,7 @@ const client = new MongoClient(uri, {
         },
       };
       const result = await orderCollection.updateOne(filter, updatedDoc);
-      console.log(result);
+      ////console.log(result);
       res.send(result);
     });
     // UPDATE PAYMENT STATUS FOR ORDER
@@ -248,7 +262,7 @@ const client = new MongoClient(uri, {
         },
       };
       const result = await orderCollection.updateOne(filter, updatedDoc);
-      console.log(result);
+      ////console.log(result);
       res.send(result);
     });
     // Get all products
